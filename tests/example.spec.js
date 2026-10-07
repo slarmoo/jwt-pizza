@@ -17,6 +17,7 @@ test('purchase with login', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Email address' }).press('Tab');
   await page.getByRole('textbox', { name: 'Password' }).fill('qqq');
   await page.getByRole('button', { name: 'Register' }).click();
+  ServerMock.register();
   await page.getByRole('link', { name: 'Order' }).click();
   await page.getByText('Awesome is a click away').click();
   await expect(page.locator('h2')).toContainText('Awesome is a click away');

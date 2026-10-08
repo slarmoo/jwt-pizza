@@ -16,9 +16,10 @@ test('view about and history', async ({ page }) => {
   await expect(page.getByRole('heading')).toContainText('Mama Rucci, my my');
 });
 
-test('login', async ({ page }) => {
+test('login then logout', async ({ page }) => {
   await page.goto('http://localhost:5173/');
   await ServerMock.login(page);
+  await ServerMock.logout(page);
 
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByRole('textbox', { name: 'Email address' }).fill('d@jwt.com');
@@ -29,6 +30,8 @@ test('login', async ({ page }) => {
   await page.getByRole('button').filter({ hasText: /^$/ }).click();
   await expect(page.getByRole('textbox', { name: 'Password' })).toHaveValue('diner');
   await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('heading')).toContainText('The web\'s best pizza');
+  await page.getByRole('link', { name: 'Logout' }).click();
   await expect(page.getByRole('heading')).toContainText('The web\'s best pizza');
 });
 
@@ -56,6 +59,57 @@ test('purchase with register', async ({ page }) => {
   // await page.getByRole('button', { name: 'Verify' }).click();
   // await expect(page.locator('h3')).toContainText('valid');
   // await page.getByRole('button', { name: 'Close' }).click();
-  // await page.getByRole('link', { name: 'Logout' }).click();
-  // await expect(page.getByRole('heading')).toContainText('The web\'s best pizza');
+});
+
+test('admin add franchise', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await ServerMock.login(page, true);
+  await ServerMock.addFranchise(page);
+  await ServerMock.getFranchises(page);
+
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email address' }).fill('a@jwt.com');
+  await page.getByRole('textbox', { name: 'Email address' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Password' }).fill('admin');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('link', { name: 'Admin' }).click();
+  await expect(page.locator('h2')).toContainText('Mama Ricci\'s kitchen');
+  await page.getByRole('textbox', { name: 'Filter franchises' }).click();
+  await page.getByRole('textbox', { name: 'Filter franchises' }).fill('pocket');
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await expect(page.locator('tbody')).toContainText('pizzaPocket');
+  await page.getByRole('button', { name: 'Add Franchise' }).click();
+  await page.getByRole('textbox', { name: 'franchise name' }).click();
+  await page.getByRole('textbox', { name: 'franchise name' }).fill('pizzaTest');
+  await page.getByRole('textbox', { name: 'franchisee admin email' }).click();
+  await page.getByRole('textbox', { name: 'franchisee admin email' }).fill('f@jwt.com');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await page.getByRole('textbox', { name: 'Filter franchises' }).click();
+  await page.getByRole('textbox', { name: 'Filter franchises' }).fill('test');
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await expect(page.locator('tbody')).toContainText('pizzaTest');
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('textbox', { name: 'Filter franchises' }).click();
+  await page.getByRole('textbox', { name: 'Filter franchises' }).fill('test');
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+    - heading "Franchises" [level=3]
+    - table:
+      - rowgroup:
+        - row "Franchise Franchisee Store Revenue Action":
+          - columnheader "Franchise"
+          - columnheader "Franchisee"
+          - columnheader "Store"
+          - columnheader "Revenue"
+          - columnheader "Action"
+      - rowgroup:
+        - row "test Submit « »":
+          - cell "test Submit":
+            - textbox "Filter franchises": test
+            - button "Submit"
+          - cell "« »":
+            - button "«" [disabled]
+            - button "»" [disabled]
+    `);
 });

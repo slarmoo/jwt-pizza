@@ -1,18 +1,56 @@
 import { test, expect } from 'playwright-test-coverage';
 class ServerMock {
 
-    async login(page) {
+    franchises = [
+        {
+            id: 1,
+            name: 'pizzaPocket',
+            stores: [{ id: 1, name: 'SLC' }]
+        },
+        {
+            id: 2,
+            name: 'LotaPizza',
+            stores: [
+                { id: 4, name: 'Lehi' },
+                { id: 5, name: 'Springville' },
+                { id: 6, name: 'American Fork' },
+            ],
+        },
+        { id: 3, name: 'PizzaCorp', stores: [{ id: 7, name: 'Spanish Fork' }] },
+        { id: 4, name: 'topSpot', stores: [] },
+    ]
+
+    async login(page, asAdmin = false, asFranchisee = false) {
         await page.route('*/**/api/auth', async (route) => {
-            const loginReq = { email: 'q@jwt.com', password: 'qqq' };
-            const loginRes = {
+            if (route.request().method() !== 'PUT') {
+                return route.fallback();
+            }
+            const loginReq = asFranchisee ? { email: 'f@jwt.com', password: 'franchisee' } : (asAdmin ? { email: 'a@jwt.com', password: 'admin' } : { email: 'd@jwt.com', password: 'diner' });
+            const loginRes = asFranchisee ? {
                 user: {
                     id: 3,
-                    name: 'q',
-                    email: 'q@jwt.com',
+                    name: 'franchisee',
+                    email: 'f@jwt.com',
+                    roles: [{ role: 'franchisee' }],
+                },
+                token: 'abcdef',
+            } : (asAdmin ? {
+                user: {
+                    id: 3,
+                    name: 'admin',
+                    email: 'a@jwt.com',
+                    roles: [{ role: 'admin' }],
+                },
+                token: 'abcdef',
+            } : {
+                user: {
+                    id: 3,
+                    name: 'pizza diner',
+                    email: 'd@jwt.com',
                     roles: [{ role: 'diner' }],
                 },
                 token: 'abcdef',
-            };
+            });
             expect(route.request().method()).toBe('PUT');
             expect(route.request().postDataJSON()).toMatchObject(loginReq);
             await route.fulfill({ json: loginRes });
@@ -21,6 +59,9 @@ class ServerMock {
 
     async register(page) {
         await page.route('*/**/api/auth', async (route) => {
+            if (route.request().method() !== 'POST') {
+                return route.fallback();
+            }
             const registerReq = { email: 'q@jwt.com', password: 'qqq' };
             const registerRes = {
                 user: {
@@ -39,6 +80,9 @@ class ServerMock {
 
     async logout(page) {
         await page.route('*/**/api/auth', async (route) => {
+            if (route.request().method() !== 'DELETE') {
+                return route.fallback();
+            }
             const logoutRes = {
                 message: 'logout successful'
             };
@@ -58,28 +102,50 @@ class ServerMock {
         });
     }
 
+    async addFranchise(page) {
+        await page.route('*/**/api/franchise', async (route) => {
+            if (route.request().method() !== 'POST') {
+                return route.fallback();
+            }
+            const franchiseReq = { name: "pizzaTest", admins: [{ email: "f@jwt.com" }] };
+            const FranchiseRes = { name: 'pizzaTest', admins: [{ email: 'f@jwt.com', id: 4, name: 'pizza franchisee' }], id: 1 };
+
+            expect(route.request().method()).toBe('POST');
+            expect(route.request().postDataJSON()).toMatchObject(franchiseReq);
+            this.franchises.push({ id: 5, name: 'pizzaTest', stores: [] });
+            await route.fulfill({ json: FranchiseRes });
+        });
+    }
+
     async getFranchises(page) {
         await page.route(/\/api\/franchise(\?.*)?$/, async (route) => {
+            if (route.request().method() !== 'GET') {
+                return route.fallback();
+            }
+            const url = new URL(route.request().url());
+            const name = url.searchParams.get('name');
+            const limit = url.searchParams.get('limit');
+            const filters = [];
+            let more = false;
+            if (name) {
+                const filter = name.replaceAll("*", "").toLowerCase();
+                filters.push((franchises) => {
+                    return franchises.filter((f) => f.name.toLowerCase().includes(filter));
+                })
+            }
+            if (limit) {
+                filters.push((franchises) => {
+                    more = limit < franchises.length;
+                    return franchises.slice(0, limit);
+                })
+            }
+            let franchises = this.franchises;
+            for (const filter of filters) franchises = filter(franchises);
             const franchiseRes = {
-                franchises: [
-                    {
-                        id: 1,
-                        name: 'pizzaPocket',
-                        stores: [{ id: 1, name: 'SLC'}]
-                    },
-                    {
-                        id: 2,
-                        name: 'LotaPizza',
-                        stores: [
-                            { id: 4, name: 'Lehi' },
-                            { id: 5, name: 'Springville' },
-                            { id: 6, name: 'American Fork' },
-                        ],
-                    },
-                    { id: 3, name: 'PizzaCorp', stores: [{ id: 7, name: 'Spanish Fork' }] },
-                    { id: 4, name: 'topSpot', stores: [] },
-                ],
+                franchises: franchises,
+                more: more
             };
+
             expect(route.request().method()).toBe('GET');
             await route.fulfill({ json: franchiseRes });
         });
@@ -90,7 +156,6 @@ class ServerMock {
         await this.getMenu(page);
         await this.getFranchises(page);
         await this.me(page);
-        // await this.logout(page);
     }
 
     async order(page) {

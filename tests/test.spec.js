@@ -134,5 +134,7 @@ test('franchisee create store', async ({ page }) => {
   await page.getByRole('textbox', { name: 'store name' }).fill('vineyard');
   await page.getByRole('button', { name: 'Create' }).click();
   await page.getByRole('row', { name: 'vineyard 0 ₿ Close' }).getByRole('button').click();
+  await expect(page.getByRole('heading', { name: 'Sorry to see you go' })).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('row', { name: /vineyard/ })).toHaveCount(0);
 });

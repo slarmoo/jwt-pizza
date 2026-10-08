@@ -66,6 +66,7 @@ test('admin add franchise', async ({ page }) => {
   await ServerMock.login(page, true);
   await ServerMock.addFranchise(page);
   await ServerMock.getFranchises(page);
+  await ServerMock.deleteFranchise(page);
 
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByRole('textbox', { name: 'Email address' }).fill('a@jwt.com');
@@ -77,7 +78,7 @@ test('admin add franchise', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Filter franchises' }).click();
   await page.getByRole('textbox', { name: 'Filter franchises' }).fill('pocket');
   await page.getByRole('button', { name: 'Submit' }).click();
-  await expect(page.locator('tbody')).toContainText('pizzaPocket');
+  await expect(page.getByRole('cell', { name: 'pizzaPocket' })).toBeVisible();
   await page.getByRole('button', { name: 'Add Franchise' }).click();
   await page.getByRole('textbox', { name: 'franchise name' }).click();
   await page.getByRole('textbox', { name: 'franchise name' }).fill('pizzaTest');
@@ -87,7 +88,7 @@ test('admin add franchise', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Filter franchises' }).click();
   await page.getByRole('textbox', { name: 'Filter franchises' }).fill('test');
   await page.getByRole('button', { name: 'Submit' }).click();
-  await expect(page.locator('tbody')).toContainText('pizzaTest');
+  await expect(page.getByRole('cell', { name: 'pizzaTest' })).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('textbox', { name: 'Filter franchises' }).click();
@@ -112,4 +113,25 @@ test('admin add franchise', async ({ page }) => {
             - button "«" [disabled]
             - button "»" [disabled]
     `);
+});
+
+test('franchisee create store', async ({ page }) => {
+  await page.goto('http://localhost:5173/');
+  await ServerMock.login(page, false, true);
+  await ServerMock.addStore(page);
+  await ServerMock.getFranchises(page);
+  await ServerMock.deleteStore(page);
+
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Email address' }).fill('f@jwt.com');
+  await page.getByRole('textbox', { name: 'Email address' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Password' }).fill('franchisee');
+  await page.getByRole('textbox', { name: 'Password' }).press('Enter');
+  await page.getByRole('navigation', { name: 'Global' }).getByRole('link', { name: 'Franchise' }).click();
+  await page.getByRole('button', { name: 'Create store' }).click();
+  await page.getByRole('textbox', { name: 'store name' }).click();
+  await page.getByRole('textbox', { name: 'store name' }).fill('vineyard');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await page.getByRole('row', { name: 'vineyard 0 ₿ Close' }).getByRole('button').click();
+  await page.getByRole('button', { name: 'Close' }).click();
 });

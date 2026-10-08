@@ -5,7 +5,8 @@ class ServerMock {
         {
             id: 1,
             name: 'pizzaPocket',
-            stores: [{ id: 1, name: 'SLC' }]
+            stores: [{ id: 1, name: 'SLC', totalRevenue: 0 }],
+            admins: [{ email: 'f@jwt.com', id: 3, name: 'pizza franchisee' }]
         },
         {
             id: 2,
@@ -107,25 +108,52 @@ class ServerMock {
             if (route.request().method() !== 'POST') {
                 return route.fallback();
             }
-            const franchiseReq = { name: "pizzaTest", admins: [{ email: "f@jwt.com" }] };
-            const FranchiseRes = { name: 'pizzaTest', admins: [{ email: 'f@jwt.com', id: 4, name: 'pizza franchisee' }], id: 1 };
-
             expect(route.request().method()).toBe('POST');
+            const franchiseReq = { name: "pizzaTest", admins: [{ email: "f@jwt.com" }] };
+            const franchiseRes = { name: 'pizzaTest', admins: [{ email: 'f@jwt.com', id: 4, name: 'pizza franchisee' }], id: 1 };
+
             expect(route.request().postDataJSON()).toMatchObject(franchiseReq);
-            this.franchises.push({ id: 5, name: 'pizzaTest', stores: [] });
-            await route.fulfill({ json: FranchiseRes });
+            this.franchises.push({ id: 5, name: 'pizzaTest', stores: [], admins: [{ email: 'f@jwt.com', id: 4, name: 'pizza franchisee' }] });
+            await route.fulfill({ json: franchiseRes });
+        });
+    }
+
+    async addStore(page) {
+        await page.route(/\/api\/franchise\/\d+\/store\/?$/, async (route) => {
+            if (route.request().method() !== 'POST') {
+                return route.fallback();
+            }
+            expect(route.request().method()).toBe('POST');
+            const url = new URL(route.request().url());
+            const folders = url.pathname.split("/");
+            if (folders[folders.length - 1] == "store") {
+                const forFranchise = folders[folders.length - 2];
+                const franchiseReq = { name: "vineyard" };
+                const franchiseRes = { id: 2, name: 'vineyard', totalRevenue: 0 };
+                expect(route.request().postDataJSON()).toMatchObject(franchiseReq);
+                this.franchises.filter((f) => f.id == forFranchise)[0].stores.push(franchiseRes);
+                await route.fulfill({ json: franchiseRes });
+            }
         });
     }
 
     async getFranchises(page) {
-        await page.route(/\/api\/franchise(\?.*)?$/, async (route) => {
+        await page.route(/\/api\/franchise(?:\/[^?]*)?(?:\?.*)?$/, async (route) => {
             if (route.request().method() !== 'GET') {
                 return route.fallback();
             }
             const url = new URL(route.request().url());
+            const folders = url.pathname.split("/");
+            const forUser = folders[folders.length - 1];
+            const filters = [];
+            if (/^\d+$/.test(forUser)) {
+                filters.push((franchises) => franchises.filter((f) => {
+                    if (f.admins == undefined) return false;
+                    return f.admins.filter((admin) => admin.email == "f@jwt.com").length > 0;
+                }));
+            }
             const name = url.searchParams.get('name');
             const limit = url.searchParams.get('limit');
-            const filters = [];
             let more = false;
             if (name) {
                 const filter = name.replaceAll("*", "").toLowerCase();
@@ -141,13 +169,47 @@ class ServerMock {
             }
             let franchises = this.franchises;
             for (const filter of filters) franchises = filter(franchises);
-            const franchiseRes = {
+            const franchiseRes = /^\d+$/.test(forUser) ? franchises : {
                 franchises: franchises,
                 more: more
             };
 
             expect(route.request().method()).toBe('GET');
             await route.fulfill({ json: franchiseRes });
+        });
+    }
+
+    async deleteFranchise(page) {
+        await page.route(/\/api\/franchise\/\d+\/?$/, async (route) => {
+            if (route.request().method() !== 'DELETE') {
+                return route.fallback();
+            }
+            const url = new URL(route.request().url());
+            const folders = url.pathname.split("/");
+            const forFranchise = folders[folders.length - 1];
+
+            const franchiseRes = { message: 'franchise deleted' };
+            this.franchises = this.franchises.filter((f) => f.id != forFranchise);
+            await route.fulfill({ json: franchiseRes });
+        });
+    }
+
+    async deleteStore(page) {
+        await page.route(/\/api\/franchise\/\d+\/store\/\d+\/?$/, async (route) => {
+            if (route.request().method() !== 'DELETE') {
+                return route.fallback();
+            }
+            const url = new URL(route.request().url());
+            const folders = url.pathname.split("/");
+            if (folders[folders.length - 2] == "store") {
+                const forFranchise = folders[folders.length - 3];
+                const forStore = folders[folders.length - 1];
+                const franchiseRes = { message: 'store deleted' };
+                const franchise = this.franchises.find((f) => f.id == forFranchise);
+
+                franchise.stores = franchise.stores.filter((s) => s.id != forStore);
+                await route.fulfill({ json: franchiseRes });
+            }
         });
     }
 

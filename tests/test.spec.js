@@ -11,9 +11,10 @@ test('home page', async ({ page }) => {
 test('view about and history', async ({ page }) => {
   await page.goto('http://localhost:5173/');
   await page.getByRole('link', { name: 'About' }).click();
+  // await expect(page.getByRole('main', { name: 'The secret sauce' })).toBeVisible();
   await expect(page.getByRole('main')).toContainText('The secret sauce');
   await page.getByRole('link', { name: 'History' }).click();
-  await expect(page.getByRole('heading')).toContainText('Mama Rucci, my my');
+  await expect(page.getByRole('heading', { name: 'Mama Rucci, my my' })).toBeVisible();
 });
 
 test('login then logout', async ({ page }) => {
@@ -89,7 +90,7 @@ test('admin add franchise', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Filter franchises' }).fill('test');
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByRole('cell', { name: 'pizzaTest' })).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('row', { name: 'pizzaTest pizza franchisee' }).getByRole('button').click();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('textbox', { name: 'Filter franchises' }).click();
   await page.getByRole('textbox', { name: 'Filter franchises' }).fill('test');

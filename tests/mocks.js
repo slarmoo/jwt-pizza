@@ -230,7 +230,8 @@ class ServerMock {
             };
             const orderRes = {
                 order: orderReq,
-                id: 1
+                id: 1,
+                jwt: "abcdef.abcdef.abcdef"
             }
             expect(route.request().method()).toBe('POST');
             expect(route.request().postDataJSON()).toMatchObject(orderReq);

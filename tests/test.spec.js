@@ -34,12 +34,14 @@ test('login then logout', async ({ page }) => {
   await expect(page.getByRole('heading')).toContainText('The web\'s best pizza');
   await page.getByRole('link', { name: 'Logout' }).click();
   await expect(page.getByRole('heading')).toContainText('The web\'s best pizza');
+  await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
 });
 
 test('purchase with register', async ({ page }) => { 
   await page.goto('http://localhost:5173/');
   await ServerMock.basicInit(page);
   await ServerMock.order(page);
+  await ServerMock.verify(page);
 
   await page.getByRole('link', { name: 'Register' }).click();
   await page.getByRole('textbox', { name: 'Full name' }).fill('q');
@@ -56,10 +58,9 @@ test('purchase with register', async ({ page }) => {
   await page.getByRole('button', { name: 'Checkout' }).click();
   await expect(page.getByText('Pay now', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Pay now' }).click();
-  // await ServerMock.verify(page);
-  // await page.getByRole('button', { name: 'Verify' }).click();
-  // await expect(page.locator('h3')).toContainText('valid');
-  // await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.locator('h3')).toContainText('valid');
+  await page.getByRole('button', { name: 'Close' }).click();
 });
 
 test('admin add franchise', async ({ page }) => {

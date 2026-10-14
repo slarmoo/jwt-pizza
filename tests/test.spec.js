@@ -1,6 +1,6 @@
 // import { test, expect } from '@playwright/test'
 import { test, expect } from 'playwright-test-coverage';
-import { ServerMock } from './mocks';
+import { loginTypes, ServerMock } from './mocks';
 
 test('home page', async ({ page }) => {
   await page.goto('/');
@@ -19,7 +19,7 @@ test('view about and history', async ({ page }) => {
 
 test('login then logout', async ({ page }) => {
   await page.goto('http://localhost:5173/');
-  await ServerMock.login(page);
+  await ServerMock.login(page, loginTypes.diner);
   await ServerMock.logout(page);
 
   await page.getByRole('link', { name: 'Login' }).click();
@@ -65,7 +65,7 @@ test('purchase with register', async ({ page }) => {
 
 test('admin add franchise', async ({ page }) => {
   await page.goto('http://localhost:5173/');
-  await ServerMock.login(page, true);
+  await ServerMock.login(page, loginTypes.admin);
   await ServerMock.addFranchise(page);
   await ServerMock.getFranchises(page);
   await ServerMock.deleteFranchise(page);
@@ -119,7 +119,7 @@ test('admin add franchise', async ({ page }) => {
 
 test('franchisee create store', async ({ page }) => {
   await page.goto('http://localhost:5173/');
-  await ServerMock.login(page, false, true);
+  await ServerMock.login(page, loginTypes.franchisee);
   await ServerMock.addStore(page);
   await ServerMock.getFranchises(page);
   await ServerMock.deleteStore(page);

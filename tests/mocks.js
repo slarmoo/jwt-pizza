@@ -1,4 +1,11 @@
 import { test, expect } from 'playwright-test-coverage';
+
+class loginTypes {
+    static diner = 0;
+    static franchisee = 1;
+    static admin = 2;
+    static q = 3;
+}
 class ServerMock {
 
     franchises = [
@@ -21,37 +28,59 @@ class ServerMock {
         // { id: 4, name: 'topSpot', stores: [] },
     ]
 
-    async login(page, asAdmin = false, asFranchisee = false) {
+    async login(page, as = loginTypes.diner) {
         await page.route('*/**/api/auth', async (route) => {
             if (route.request().method() !== 'PUT') {
                 return route.fallback();
             }
-            const loginReq = asFranchisee ? { email: 'f@jwt.com', password: 'franchisee' } : (asAdmin ? { email: 'a@jwt.com', password: 'admin' } : { email: 'd@jwt.com', password: 'diner' });
-            const loginRes = asFranchisee ? {
-                user: {
-                    id: 3,
-                    name: 'franchisee',
-                    email: 'f@jwt.com',
-                    roles: [{ role: 'franchisee' }],
-                },
-                token: 'abcdef',
-            } : (asAdmin ? {
-                user: {
-                    id: 3,
-                    name: 'admin',
-                    email: 'a@jwt.com',
-                    roles: [{ role: 'admin' }],
-                },
-                token: 'abcdef',
-            } : {
-                user: {
-                    id: 3,
-                    name: 'pizza diner',
-                    email: 'd@jwt.com',
-                    roles: [{ role: 'diner' }],
-                },
-                token: 'abcdef',
-            });
+            const loginReq = (() => {
+                switch (as) {
+                    case loginTypes.franchisee: return { email: 'f@jwt.com', password: 'franchisee' };
+                    case loginTypes.admin: return { email: 'a@jwt.com', password: 'admin' };
+                    case loginTypes.q: return { email: 'q@jwt.com', password: 'diner' };
+                    default: return { email: 'd@jwt.com', password: 'diner' };
+                }
+            })();
+            const loginRes = (() => {
+                switch (as) {
+                    case loginTypes.franchisee: return {
+                        user: {
+                            id: 3,
+                            name: 'franchisee',
+                            email: 'f@jwt.com',
+                            roles: [{ role: 'franchisee' }],
+                        },
+                        token: 'abcdef',
+                    };
+                    case loginTypes.admin: return {
+                        user: {
+                            id: 3,
+                            name: 'admin',
+                            email: 'a@jwt.com',
+                            roles: [{ role: 'admin' }],
+                        },
+                        token: 'abcdef',
+                    };
+                    case loginTypes.q: return {
+                        user: {
+                            id: 3,
+                            name: 'qqq',
+                            email: 'q@jwt.com',
+                            roles: [{ role: 'diner' }],
+                        },
+                        token: 'abcdef',
+                    };
+                    default: return {
+                        user: {
+                            id: 3,
+                            name: 'pizza diner',
+                            email: 'd@jwt.com',
+                            roles: [{ role: 'diner' }],
+                        },
+                        token: 'abcdef',
+                    };
+                }
+            })();
             expect(route.request().method()).toBe('PUT');
             expect(route.request().postDataJSON()).toMatchObject(loginReq);
             await route.fulfill({ json: loginRes });
@@ -295,4 +324,4 @@ function expectValidJwt(potentialJwt) {
 }
 
 const server = new ServerMock();
-export { server as ServerMock };
+export { server as ServerMock, loginTypes };

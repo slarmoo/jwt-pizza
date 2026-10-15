@@ -37,8 +37,8 @@ class ServerMock {
                 switch (as) {
                     case loginTypes.franchisee: return { email: 'f@jwt.com', password: 'franchisee' };
                     case loginTypes.admin: return { email: 'a@jwt.com', password: 'admin' };
-                    case loginTypes.q: return { email: 'q@jwt.com', password: 'diner' };
-                    default: return { email: 'd@jwt.com', password: 'diner', name: 'pizza dinerx' };
+                    case loginTypes.q: return { email: 'q@jwt.com', password: 'diner', name: 'pizza dinerx' };
+                    default: return { email: 'd@jwt.com', password: 'diner' };
                 }
             })();
             const loginRes = (() => {

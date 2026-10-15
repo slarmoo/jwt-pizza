@@ -38,7 +38,7 @@ class ServerMock {
                     case loginTypes.franchisee: return { email: 'f@jwt.com', password: 'franchisee' };
                     case loginTypes.admin: return { email: 'a@jwt.com', password: 'admin' };
                     case loginTypes.q: return { email: 'q@jwt.com', password: 'diner' };
-                    default: return { email: 'd@jwt.com', password: 'diner' };
+                    default: return { email: 'd@jwt.com', password: 'diner', name: 'pizza dinerx' };
                 }
             })();
             const loginRes = (() => {
@@ -64,7 +64,7 @@ class ServerMock {
                     case loginTypes.q: return {
                         user: {
                             id: 3,
-                            name: 'qqq',
+                            name: 'pizza diner',
                             email: 'q@jwt.com',
                             roles: [{ role: 'diner' }],
                         },
@@ -96,7 +96,7 @@ class ServerMock {
             const registerRes = {
                 user: {
                     id: 3,
-                    name: 'q',
+                    name: 'pizza diner',
                     email: 'q@jwt.com',
                     roles: [{ role: 'diner' }],
                 },
@@ -270,13 +270,35 @@ class ServerMock {
 
     async me(page) {
         await page.route('*/**/api/user/me', async (route) => {
+            if (route.request().method() !== 'GET') {
+                return route.fallback();
+            }
+            expect(route.request().method()).toBe('GET');
             const meRes = {
                 id: 3,
-                name: 'q',
+                name: 'pizza diner',
                 email: 'q@jwt.com',
                 roles: [{ role: 'diner' }],
             };
-            expect(route.request().method()).toBe('GET');
+            await route.fulfill({ json: meRes });
+        });
+    }
+
+    async updateMe(page) {
+        await page.route(/\/api\/api\/user\/me\/\d+$/, async (route) => {
+            if (route.request().method() !== 'PUT') {
+                return route.fallback();
+            }
+            expect(route.request().method()).toBe('PUT');
+            const meRes = {
+                user: {
+                    id: 3,
+                    name: 'q',
+                    email: 'q@jwt.com',
+                    roles: [{ role: 'diner' }],
+                },
+                token: 'abcdef'
+            };
             await route.fulfill({ json: meRes });
         });
     }
